@@ -9,6 +9,15 @@ class Subscription extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'service',
+        'status',
+        'started_at',
+        'expires_at',
+        'user_id',
+        'original_transaction_id',
+    ];
+
     const PAYMENT_SERVICE_APPSTORE = 'appstore_server_notification';
 
     const ALLOWED_PAYMENT_SERVICES = [

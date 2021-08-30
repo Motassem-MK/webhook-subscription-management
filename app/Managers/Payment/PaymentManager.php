@@ -15,13 +15,6 @@ class PaymentManager implements PaymentManagerInterface
         Subscription::PAYMENT_SERVICE_APPSTORE => 'createAppStoreServerNotificationsService',
     ];
 
-    private $app;
-
-    public function __construct($app)
-    {
-        $this->app = $app;
-    }
-
     /**
      * @throws \Exception
      */

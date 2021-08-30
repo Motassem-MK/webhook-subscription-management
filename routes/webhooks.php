@@ -3,4 +3,4 @@
 use App\Http\Controllers\Webhooks\SubscriptionUpdateController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('{service}/status-update', SubscriptionUpdateController::class);
+Route::post('{service}/subscription/notification', SubscriptionUpdateController::class);

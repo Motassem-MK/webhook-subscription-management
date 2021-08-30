@@ -18,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->bind(PaymentManagerInterface::class, function ($app) {
-            return new PaymentManager($app);
+            return new PaymentManager();
         });
 
         $this->app->bind(SubscriptionServiceInterface::class, function($app) {
