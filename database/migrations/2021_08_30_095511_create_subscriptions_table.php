@@ -23,6 +23,8 @@ class CreateSubscriptionsTable extends Migration
             $table->timestamp('started_at');
             $table->timestamp('expires_at');
 
+            $table->unique('original_transaction_id');
+
             $table->foreignIdFor(User::class);
 
             $table->timestamps();
