@@ -3,10 +3,19 @@
 namespace App\Services\SubscriptionServices;
 
 use App\Dtos\StatusUpdateDTO;
+use App\Models\Subscription;
 use App\Models\Transaction;
 
-class BaseSubscriptionService
+abstract class SubscriptionServiceAbstract
 {
+    abstract public function handleNotification(StatusUpdateDTO $statusUpdateDTO): Subscription;
+
+    abstract public function create(): Subscription;
+
+    abstract public function update(): Subscription;
+
+    abstract public function cancel(): Subscription;
+
     protected function insertTransactionRecord(StatusUpdateDTO $statusUpdateDTO, int $subscription_id): void
     {
         Transaction::create([

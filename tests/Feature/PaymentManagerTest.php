@@ -1,23 +1,24 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Feature;
 
 use App\Managers\Payment\PaymentManager;
 use App\Models\Subscription;
 use App\Services\PaymentServices\AppStoreServerNotificationsService;
-use PHPUnit\Framework\TestCase;
+use Tests\CreatesApplication;
+use Tests\TestCase;
 
 class PaymentManagerTest extends TestCase
 {
     public function test_can_use_appstore_service()
     {
-        $factory = new PaymentManager();
+        $factory = new PaymentManager($this->app);
         $service = $factory->make(Subscription::PAYMENT_SERVICE_APPSTORE);
-        $service_class_name = get_class($service);
+        $serviceClassName = get_class($service);
 
         $this->assertEquals(
             AppStoreServerNotificationsService::class,
-            $service_class_name
+            $serviceClassName
         );
     }
 }

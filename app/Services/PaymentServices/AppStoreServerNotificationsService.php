@@ -4,6 +4,10 @@ namespace App\Services\PaymentServices;
 
 use App\Dtos\StatusUpdateDTO;
 use App\Models\Subscription;
+use App\Models\Transaction;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response as IlluminateResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class AppStoreServerNotificationsService implements PaymentServiceInterface
 {
@@ -12,58 +16,43 @@ class AppStoreServerNotificationsService implements PaymentServiceInterface
     const TYPE_FAILED_RENEW = 'DID_FAIL_TO_RENEW';
     const TYPE_CANCELLATION = 'CANCEL';
 
+    const TYPES_MAP = [
+        self::TYPE_NEW_PURCHASE => Transaction::TYPE_FIRST_PURCHASE,
+        self::TYPE_SUCCESSFUL_RENEW => Transaction::TYPE_RENEWAL_SUCCESS,
+        self::TYPE_FAILED_RENEW => Transaction::TYPE_RENEWAL_FAIL,
+        self::TYPE_CANCELLATION => Transaction::TYPE_CANCELLATION,
+    ];
+
+    public function __construct(private array $config)
+    {
+    }
+
     public function handleCallback(array $parameters): StatusUpdateDTO
     {
         $transaction_id = $parameters['original_transaction_id'];
 
-        $status_update_dto = new StatusUpdateDTO(
+        return new StatusUpdateDTO(
             $transaction_id,
             Subscription::PAYMENT_SERVICE_APPSTORE,
-            $this->detectOperation($parameters['notification_type']),
-            $this->detectStatus($parameters['notification_type']),
+            self::TYPES_MAP[$parameters['notification_type']],
             $parameters
         );
-
-        $this->setTransactionType($parameters['notification_type'], $status_update_dto);
-
-        return $status_update_dto;
     }
 
-    private function setTransactionType($type, StatusUpdateDTO $status_update_dto): void
+    public function authenticate(Request $request): bool
     {
-        $type_setters = [
-            self::TYPE_NEW_PURCHASE => 'setTransactionAsNewPurchase',
-            self::TYPE_SUCCESSFUL_RENEW => 'setTransactionAsSuccessfulRenew',
-            self::TYPE_FAILED_RENEW => 'setTransactionAsFailedRenew',
-            self::TYPE_CANCELLATION => 'setTransactionAsCancellation',
-        ];
+        $providedPassword = $request->get('password');
+        $correctPassword = $this->config['webhook-password'];
 
-        $status_update_dto->{$type_setters[$type]}();
+        if ($providedPassword === $correctPassword) {
+            return true;
+        }
+
+        return false;
     }
 
-    private function detectStatus($type): string
+    public function respond(): IlluminateResponse
     {
-        // TODO process current status, grace period, other factors
-
-        if (in_array($type, [self::TYPE_CANCELLATION, self::TYPE_FAILED_RENEW])) {
-            return Subscription::STATUS_INACTIVE;
-        }
-
-        return Subscription::STATUS_ACTIVE;
-    }
-
-    private function detectOperation($type): string
-    {
-        // TODO process current status, grace period, other factors
-
-        if ($type == self::TYPE_NEW_PURCHASE) {
-            return 'create';
-        }
-
-        if ($type == self::TYPE_SUCCESSFUL_RENEW) {
-            return 'update';
-        }
-
-        return 'cancel';
+        return response('', Response::HTTP_OK);
     }
 }

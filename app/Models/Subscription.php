@@ -18,7 +18,7 @@ class Subscription extends Model
         'original_transaction_id',
     ];
 
-    const PAYMENT_SERVICE_APPSTORE = 'appstore_server_notification';
+    const PAYMENT_SERVICE_APPSTORE = 'apple';
 
     const ALLOWED_PAYMENT_SERVICES = [
         self::PAYMENT_SERVICE_APPSTORE,

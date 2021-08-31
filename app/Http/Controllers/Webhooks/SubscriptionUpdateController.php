@@ -10,12 +10,10 @@ use Illuminate\Http\Response;
 
 class SubscriptionUpdateController extends Controller
 {
-    public function __invoke(Request $request, string $provider): Response
+    public function __invoke(Request $request, string $provider, PaymentManagerInterface $paymentManager): Response
     {
         ProcessSubscriptionUpdateMessage::dispatch($request->all(), $provider);
 
-        return response()
-            ->setStatusCode(200)
-            ->send();
+        return $paymentManager->make($provider)->respond();
     }
 }

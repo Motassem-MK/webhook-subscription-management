@@ -20,10 +20,11 @@ class CreateSubscriptionsTable extends Migration
 
             $table->enum('service', Subscription::ALLOWED_PAYMENT_SERVICES);
             $table->enum('status', Subscription::ALLOWED_STATUSES);
-            $table->timestamp('started_at');
-            $table->timestamp('expires_at');
 
-            $table->unique('original_transaction_id');
+            $table->timestamp('started_at')->useCurrent();
+            $table->timestamp('expires_at')->useCurrent();
+
+            $table->string('original_transaction_id')->unique();
 
             $table->foreignIdFor(User::class);
 

@@ -30,4 +30,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'apple' => [
+        'subscription-notification' => [
+            'webhook-password' => env('APPLE_SUBSCRIPTION_NOTIFICATION_WEBHOOK_PASSWORD'),
+        ]
+    ]
+
 ];

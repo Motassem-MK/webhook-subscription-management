@@ -15,31 +15,37 @@ class PaymentManager implements PaymentManagerInterface
         Subscription::PAYMENT_SERVICE_APPSTORE => 'createAppStoreServerNotificationsService',
     ];
 
+    public function __construct($app)
+    {
+        $this->app = $app;
+    }
+
     /**
      * @throws \Exception
      */
-    public function make($provider_name): PaymentServiceInterface
+    public function make($providerName): PaymentServiceInterface
     {
-        $service = Arr::get($this->services, $provider_name);
+        $service = Arr::get($this->services, $providerName);
 
         if ($service) {
             return $service;
         }
 
-        $createMethod = $this->handlers[$provider_name];
+        $createMethod = $this->handlers[$providerName];
         if (!method_exists($this, $createMethod)) {
-            throw new \Exception("Provider $provider_name is not supported.");
+            throw new \Exception("Provider $providerName is not supported.");
         }
 
         $service = $this->{$createMethod}();
-        $this->services[$provider_name] = $service;
+        $this->services[$providerName] = $service;
 
         return $service;
     }
 
     private function createAppStoreServerNotificationsService(): AppStoreServerNotificationsService
     {
-        $service = new AppStoreServerNotificationsService();
+        $serviceConfig = $this->app['config']['services.apple.subscription-notification'];
+        $service = new AppStoreServerNotificationsService($serviceConfig);
 
         return $service;
     }

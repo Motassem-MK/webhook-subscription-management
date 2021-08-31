@@ -3,64 +3,115 @@
 namespace App\Services\SubscriptionServices;
 
 use App\Dtos\StatusUpdateDTO;
+use App\Exceptions\SubscriptionNotFound;
+use App\Exceptions\TransactionTypeNotImplemented;
 use App\Models\Subscription;
+use App\Models\Transaction;
 
-class DefaultSubscriptionService extends BaseSubscriptionService implements SubscriptionServiceInterface {
-    public function create(StatusUpdateDTO $status_update_dto): void
+class DefaultSubscriptionService extends SubscriptionServiceAbstract
+{
+    private StatusUpdateDTO $statusUpdateDTO;
+
+    /**
+     * @throws \Exception
+     */
+    public function handleNotification(StatusUpdateDTO $statusUpdateDTO): Subscription
+    {
+        $this->statusUpdateDTO = $statusUpdateDTO;
+
+        $isFirstPurchase = $this->statusUpdateDTO->getTransactionType() === Transaction::TYPE_FIRST_PURCHASE;
+        if ($isFirstPurchase) {
+            return $this->create();
+        }
+
+        $isUpdate = $this->statusUpdateDTO->getTransactionType() === Transaction::TYPE_RENEWAL_SUCCESS;
+        if ($isUpdate) {
+            return $this->update();
+        }
+
+        $isCancellation = in_array($this->statusUpdateDTO->getTransactionType(), [
+            Transaction::TYPE_CANCELLATION,
+            Transaction::TYPE_RENEWAL_FAIL
+        ]);
+        if ($isCancellation) {
+            return $this->cancel();
+        }
+
+        throw new TransactionTypeNotImplemented();
+    }
+
+    public function create(): Subscription
     {
         $subscription = Subscription::create([
-            'service' => $status_update_dto->getProvider(),
-            'status' => $status_update_dto->getStatus(),
-            'started_at' => $this->calculateStartsAt($status_update_dto),
-            'expires_at' => $this->calculateExpiresAt($status_update_dto),
-            'original_transaction_id' => $status_update_dto->getOriginalTransactionId(),
+            'service' => $this->statusUpdateDTO->getProvider(),
+            'status' => Subscription::STATUS_ACTIVE,
+            'started_at' => $this->calculateStartsAt(),
+            'expires_at' => $this->calculateExpiresAt(),
+            'original_transaction_id' => $this->statusUpdateDTO->getOriginalTransactionId(),
             'user_id' => 1 // TODO implement the logic of getting the user.
         ]);
 
-        parent::insertTransactionRecord($status_update_dto, $subscription->id);
+        $this->insertTransactionRecord($this->statusUpdateDTO, $subscription->id);
+
+        return $subscription;
     }
 
-    public function update(StatusUpdateDTO $status_update_dto): void
+    /**
+     * @throws SubscriptionNotFound
+     */
+    public function update(): Subscription
     {
         $subscription = Subscription::where(
             'original_transaction_id',
-            $status_update_dto->getOriginalTransactionId()
+            $this->statusUpdateDTO->getOriginalTransactionId()
         )->first();
 
+        if (!$subscription) {
+            throw new SubscriptionNotFound();
+        }
+
         $subscription->update([
-            'status' => $status_update_dto->getStatus(),
-            'started_at' => $this->calculateStartsAt($status_update_dto, $subscription),
-            'expires_at' => $this->calculateExpiresAt($status_update_dto, $subscription),
+            'status' => Subscription::STATUS_ACTIVE,
+            'expires_at' => $this->calculateExpiresAt($subscription),
         ]);
 
-        parent::insertTransactionRecord($status_update_dto, $subscription->id);
+        $this->insertTransactionRecord($this->statusUpdateDTO, $subscription->id);
+
+        return $subscription;
     }
 
-    public function cancel(StatusUpdateDTO $status_update_dto): void
+    /**
+     * @throws SubscriptionNotFound
+     */
+    public function cancel(): Subscription
     {
         $subscription = Subscription::where(
             'original_transaction_id',
-            $status_update_dto->getOriginalTransactionId()
+            $this->statusUpdateDTO->getOriginalTransactionId()
         )->first();
 
+        if (!$subscription) {
+            throw new SubscriptionNotFound();
+        }
+
         $subscription->update([
-            'status' => $status_update_dto->getStatus(),
-            'started_at' => $this->calculateStartsAt($status_update_dto, $subscription),
-            'expires_at' => $this->calculateExpiresAt($status_update_dto, $subscription),
+            'status' => Subscription::STATUS_INACTIVE,
         ]);
 
-        parent::insertTransactionRecord($status_update_dto, $subscription->id);
+        $this->insertTransactionRecord($this->statusUpdateDTO, $subscription->id);
+
+        return $subscription;
     }
 
-    private function calculateStartsAt(StatusUpdateDTO $status_update_dto, Subscription $subscription = null): string
+    private function calculateStartsAt(Subscription $subscription = null): string
     {
-        // TODO implement
-        return 'NNN';
+        // I assume that all new/renewed transactions will start the new period immediately, correct this if not.
+        return now();
     }
 
-    private function calculateExpiresAt(StatusUpdateDTO $status_update_dto, Subscription $subscription = null): string
+    private function calculateExpiresAt(Subscription $subscription = null): string
     {
-        // TODO implement
-        return 'NNN';
+        // TODO implement serious logic
+        return now()->addYear();
     }
 }
